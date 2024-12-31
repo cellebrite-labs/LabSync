@@ -1,0 +1,1121 @@
+inlined_funcs:
+- 0x10000dbf8
+- 0x10000dc00
+- 0x10000dc10
+- 0x10000dc1c
+- 0x10000dc34
+- 0x10000dc44
+- 0x10000dc5c
+- 0x10000dc64
+- 0x10000dc88
+- 0x10000dc98
+- 0x10000dcc0
+- 0x10000dcc8
+- 0x10000dcdc
+- 0x10000dcf0
+- 0x10000dcfc
+- 0x10000dd10
+- 0x10000dd1c
+- 0x10000dd28
+- 0x10000dd34
+- 0x10000dd4c
+- 0x10000dd64
+- 0x10000dd7c
+- 0x10000dd98
+- 0x10000ddb0
+- 0x10000ddb8
+- 0x10000ddc4
+- 0x10000ddd0
+- 0x10000dddc
+- 0x10000ddf8
+- 0x10000de14
+- 0x10000de24
+- 0x10000de34
+- 0x10000de44
+- 0x10000de54
+- 0x10000de68
+- 0x10000de78
+- 0x10000de88
+- 0x10000dea0
+- 0x10000debc
+- 0x10000decc
+- 0x10000dee8
+- 0x10000def4
+- 0x10000df08
+- 0x10000df14
+- 0x10000df20
+- 0x10000df34
+- 0x10000df4c
+- 0x10000df5c
+- 0x10000df74
+- 0x10000df8c
+- 0x10000dfa4
+- 0x10000dfac
+- 0x10000dfbc
+- 0x10000dfdc
+- 0x10000dfec
+- 0x10000dffc
+- 0x10000e008
+- 0x10000e010
+- 0x10000e018
+- 0x10000e028
+- 0x10000e038
+- 0x10000e044
+- 0x10000e05c
+- 0x10000e070
+- 0x10000e088
+- 0x10000e098
+- 0x10000e0b8
+- 0x10000e0d4
+- 0x10000e0e4
+- 0x10000e0f8
+- 0x10000e10c
+- 0x10000e120
+- 0x10000e12c
+- 0x10000e140
+- 0x10000e154
+- 0x10000e160
+- 0x10000e174
+- 0x10000e17c
+- 0x10000e18c
+- 0x10000e1a0
+- 0x10000e1b4
+- 0x10000e1d0
+- 0x10000e1dc
+- 0x10000e1e8
+- 0x10000e1f0
+- 0x10000e204
+- 0x10000e210
+- 0x10000e21c
+- 0x10000e230
+- 0x10000e238
+- 0x10000e240
+- 0x10000e254
+- 0x10000e268
+- 0x10000e27c
+- 0x10000e290
+- 0x10000e29c
+- 0x10000e2a8
+- 0x10000e2b4
+- 0x10000e2c0
+- 0x10000e2cc
+- 0x10000e2d4
+local_types: |-
+  /* >> LABSYNC DO NOT TOUCH: 5acbdd09-fb3c-4ea8-bf8a-0c8bee6459ce << */
+  struct _RuneCharClass
+  {
+    char __name[14];
+    __uint32_t __mask;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 2d818a33-0259-4061-82db-e1a6d943d47e << */
+  struct _RuneEntry
+  {
+    __darwin_rune_t __min;
+    __darwin_rune_t __max;
+    __darwin_rune_t __map;
+    __uint32_t *__types;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 4e2dc9c5-6cb8-4d6f-a984-bcbb69eda153 << */
+  struct _RuneLocale
+  {
+    char __magic[8];
+    char __encoding[32];
+    __darwin_rune_t (__cdecl *__sgetrune)(const char *, __darwin_size_t, const char **);
+    int (__cdecl *__sputrune)(__darwin_rune_t, char *, __darwin_size_t, char **);
+    __darwin_rune_t __invalid_rune;
+    __uint32_t __runetype[256];
+    __darwin_rune_t __maplower[256];
+    __darwin_rune_t __mapupper[256];
+    _RuneRange __runetype_ext;
+    _RuneRange __maplower_ext;
+    _RuneRange __mapupper_ext;
+    void *__variable;
+    int __variable_len;
+    int __ncharclasses;
+    _RuneCharClass *__charclasses;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 3f221dd1-ba46-40f4-9674-3ba0e8c83150 << */
+  struct _RuneRange
+  {
+    int __nranges;
+    _RuneEntry *__ranges;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 23ad52d3-b27c-45b6-b4ef-2e6b29f41102 << */
+  typedef __int64_t __darwin_blkcnt_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 5830a09c-64e3-49cf-adb1-7c95da42764d << */
+  typedef __int32_t __darwin_blksize_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 961eb519-612d-4165-80ee-b4f4d4931d06 << */
+  typedef __int32_t __darwin_dev_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 1fcd322b-9900-4931-b66a-e48e50a95901 << */
+  typedef __uint32_t __darwin_gid_t;
+
+  /* >> LABSYNC DO NOT TOUCH: ba544ace-be19-420b-b925-7fe250df7d72 << */
+  typedef __uint64_t __darwin_ino64_t;
+
+  /* >> LABSYNC DO NOT TOUCH: b50fc9d0-ae4f-4684-a90b-0daa8cac609d << */
+  typedef __uint16_t __darwin_mode_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 2a88c553-411f-44b5-9945-ab07e185c072 << */
+  typedef __int64_t __darwin_off_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 5ec1d659-94a0-4c9d-a7d6-1f3877c7618c << */
+  typedef __darwin_wchar_t __darwin_rune_t;
+
+  /* >> LABSYNC DO NOT TOUCH: d60b92ae-3e37-4bfa-be13-bbb6b80ac3da << */
+  typedef unsigned __int64 __darwin_size_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 4114422b-3e48-48da-9497-c7c32a1197a7 << */
+  typedef __int64 __darwin_time_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 37da2e80-af94-44f3-9e19-7e3b11de903f << */
+  typedef __uint32_t __darwin_uid_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 57cbd9ef-c228-43cc-954a-7802db709b84 << */
+  typedef int __darwin_wchar_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 2169feda-a5d4-4f46-8961-c62c6bd0d67f << */
+  typedef int __int32_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 756f423f-8d5d-4cde-884b-05f74481284f << */
+  typedef __int64 __int64_t;
+
+  /* >> LABSYNC DO NOT TOUCH: d3fd903e-9fd4-4a71-a2c6-ecbb5a2c2981 << */
+  union __attribute__((aligned(8))) __n128
+  {
+    unsigned __int64 n128_u64[2];
+    unsigned __int32 n128_u32[4];
+    unsigned __int16 n128_u16[8];
+    unsigned __int8 n128_u8[16];
+    __int64 n128_i64[2];
+    __int32 n128_i32[4];
+    __int16 n128_i16[8];
+    __int8 n128_i8[16];
+    float n128_f32[4];
+    double n128_f64[2];
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 866ba5ac-0770-4ec3-b749-6672d21fbd3a << */
+  union __attribute__((aligned(8))) __n64
+  {
+    unsigned __int64 n64_u64[1];
+    unsigned __int32 n64_u32[2];
+    unsigned __int16 n64_u16[4];
+    unsigned __int8 n64_u8[8];
+    __int64 n64_i64[1];
+    __int32 n64_i32[2];
+    __int16 n64_i16[4];
+    __int8 n64_i8[8];
+    float n64_f32[2];
+    double n64_f64[1];
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: a36a6c9d-afa6-4fb1-a307-b31d39c222e7 << */
+  typedef unsigned __int16 __uint16_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 985a4a22-2144-4f77-be7e-aed577891491 << */
+  typedef unsigned int __uint32_t;
+
+  /* >> LABSYNC DO NOT TOUCH: c9a8b4f6-de58-46a2-9fe7-1e2f501abe29 << */
+  typedef unsigned __int64 __uint64_t;
+
+  /* >> LABSYNC DO NOT TOUCH: e512452e-e829-4fc2-9925-026bbe3f23f2 << */
+  typedef __darwin_blkcnt_t blkcnt_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 046a1035-675c-4c3e-8350-ca5df1e1987b << */
+  typedef __darwin_blksize_t blksize_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 66bd002a-10f2-4108-9563-af0d17f7a3af << */
+  struct build_version_command
+  {
+    uint32_t cmd;
+    uint32_t cmdsize;
+    uint32_t platform;
+    uint32_t minos;
+    uint32_t sdk;
+    uint32_t ntools;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: c8fc54b8-2193-4465-aea7-9dc8f3e75335 << */
+  typedef __darwin_dev_t dev_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 95bff06c-412e-42fc-b43f-ad3078c2b977 << */
+  struct dyld_info_command
+  {
+    uint32_t cmd;
+    uint32_t cmdsize;
+    uint32_t rebase_off;
+    uint32_t rebase_size;
+    uint32_t bind_off;
+    uint32_t bind_size;
+    uint32_t weak_bind_off;
+    uint32_t weak_bind_size;
+    uint32_t lazy_bind_off;
+    uint32_t lazy_bind_size;
+    uint32_t export_off;
+    uint32_t export_size;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: c29daf04-4027-4039-a4ae-60500fd4d765 << */
+  struct dylib
+  {
+    lc_str name;
+    uint32_t timestamp;
+    uint32_t current_version;
+    uint32_t compatibility_version;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 824cfa9a-83f5-484b-aab8-7ab4e6b007ea << */
+  struct dylib_command
+  {
+    uint32_t cmd;
+    uint32_t cmdsize;
+    dylib dylib;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 20ac51a8-fe70-4fe0-b5ce-6d6eec53ffd7 << */
+  struct dylinker_command
+  {
+    uint32_t cmd;
+    uint32_t cmdsize;
+    lc_str name;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 3ba4b053-70ef-41da-bc09-77dc73aa85c7 << */
+  struct dysymtab_command
+  {
+    uint32_t cmd;
+    uint32_t cmdsize;
+    uint32_t ilocalsym;
+    uint32_t nlocalsym;
+    uint32_t iextdefsym;
+    uint32_t nextdefsym;
+    uint32_t iundefsym;
+    uint32_t nundefsym;
+    uint32_t tocoff;
+    uint32_t ntoc;
+    uint32_t modtaboff;
+    uint32_t nmodtab;
+    uint32_t extrefsymoff;
+    uint32_t nextrefsyms;
+    uint32_t indirectsymoff;
+    uint32_t nindirectsyms;
+    uint32_t extreloff;
+    uint32_t nextrel;
+    uint32_t locreloff;
+    uint32_t nlocrel;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 974e690c-0e27-431e-beb4-775ab098c46e << */
+  struct entry_point_command
+  {
+    uint32_t cmd;
+    uint32_t cmdsize;
+    uint64_t entryoff;
+    uint64_t stacksize;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 54768367-3987-4ff3-af0e-a4842935100e << */
+  typedef float16x4_t float16x2_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 44f80af5-79a5-4185-b0e4-71b2a6a60a50 << */
+  typedef __darwin_gid_t gid_t;
+
+  /* >> LABSYNC DO NOT TOUCH: b2705078-e71f-4465-af74-08b0db811216 << */
+  typedef int16x4_t int16x2_t;
+
+  /* >> LABSYNC DO NOT TOUCH: af9fc1f4-d91c-4ee4-a4e2-1f2f3d218372 << */
+  typedef int int32_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 1739cc51-aa3a-4f93-bf45-7537e362e901 << */
+  union lc_str
+  {
+    uint32_t offset;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 71073399-a183-43e0-9dc6-ae252c641bb7 << */
+  struct linkedit_data_command
+  {
+    uint32_t cmd;
+    uint32_t cmdsize;
+    uint32_t dataoff;
+    uint32_t datasize;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: ce4306db-1003-42ae-946e-263e6eacd58d << */
+  struct mach_header_64
+  {
+    uint32_t magic;
+    int32_t cputype;
+    int32_t cpusubtype;
+    uint32_t filetype;
+    uint32_t ncmds;
+    uint32_t sizeofcmds;
+    uint32_t flags;
+    uint32_t reserved;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 9d734e39-277e-40f1-8c19-cc0590603b20 << */
+  typedef __darwin_mode_t mode_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 0012d8a6-a6ef-41c9-b92f-408e7159c9f6 << */
+  typedef __uint16_t nlink_t;
+
+  /* >> LABSYNC DO NOT TOUCH: f6ecd5f9-54d7-45db-9bad-46fd0b338d09 << */
+  typedef __darwin_off_t off_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 6dd54d24-31aa-4866-8cc5-953e3212cec8 << */
+  struct section_64
+  {
+    char sectname[16] __strlit(C,"UTF-8");
+    char segname[16] __strlit(C,"UTF-8");
+    uint64_t addr;
+    uint64_t size;
+    uint32_t offset;
+    uint32_t align;
+    uint32_t reloff;
+    uint32_t nreloc;
+    uint32_t flags;
+    uint32_t reserved1;
+    uint32_t reserved2;
+    uint32_t reserved3;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: fbc3b44e-8448-4241-9955-214c91b8edaf << */
+  struct segment_command_64
+  {
+    uint32_t cmd;
+    uint32_t cmdsize;
+    char segname[16] __strlit(C,"UTF-8");
+    uint64_t vmaddr;
+    uint64_t vmsize;
+    uint64_t fileoff;
+    uint64_t filesize;
+    int32_t maxprot;
+    int32_t initprot;
+    uint32_t nsects;
+    uint32_t flags;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 51daed76-64f3-4c64-9392-cd82cfd1c1f1 << */
+  struct source_version_command
+  {
+    uint32_t cmd;
+    uint32_t cmdsize;
+    uint64_t version;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: de37c4b5-0ec2-4cfb-95bd-7e85361e27f5 << */
+  struct stat
+  {
+    dev_t st_dev;
+    mode_t st_mode;
+    nlink_t st_nlink;
+    __darwin_ino64_t st_ino;
+    uid_t st_uid;
+    gid_t st_gid;
+    dev_t st_rdev;
+    timespec st_atimespec;
+    timespec st_mtimespec;
+    timespec st_ctimespec;
+    timespec st_birthtimespec;
+    off_t st_size;
+    blkcnt_t st_blocks;
+    blksize_t st_blksize;
+    __uint32_t st_flags;
+    __uint32_t st_gen;
+    __int32_t st_lspare;
+    __int64_t st_qspare[2];
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 1aa588d7-4d71-4ba7-8e85-9ac75753f253 << */
+  struct symtab_command
+  {
+    uint32_t cmd;
+    uint32_t cmdsize;
+    uint32_t symoff;
+    uint32_t nsyms;
+    uint32_t stroff;
+    uint32_t strsize;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: 8b27fdb5-a146-440d-ba0a-15faef0f91e2 << */
+  typedef __darwin_time_t time_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 7f9f9eaf-a2f2-4627-b738-976aca72cc37 << */
+  struct timespec
+  {
+    __darwin_time_t tv_sec;
+    __int64 tv_nsec;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: d1d70767-818a-4d0c-bab1-545df4b16694 << */
+  typedef unsigned int u_int32_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 9dc51d65-2de3-4771-9020-70bcc497a13c << */
+  typedef unsigned __int64 u_int64_t;
+
+  /* >> LABSYNC DO NOT TOUCH: d4948a53-1864-4107-8484-912bf5b67b36 << */
+  typedef unsigned __int8 u_int8_t;
+
+  /* >> LABSYNC DO NOT TOUCH: c8b2e277-690e-4259-94e8-07b8f4f63841 << */
+  typedef __darwin_uid_t uid_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 7237edb2-e0ab-40f9-95e4-08232922e0cd << */
+  typedef uint16x4_t uint16x2_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 9b913b91-db29-40c3-a47a-85745d939b7c << */
+  typedef u_int32_t uint32_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 0ecbf17f-b3db-4cf5-a4ac-76456e96ee85 << */
+  typedef u_int64_t uint64_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 9758bf7e-c5a0-4888-ae4b-a5f81671454a << */
+  typedef u_int8_t uint8_t;
+
+  /* >> LABSYNC DO NOT TOUCH: 0fc9f00a-b75f-4564-bca1-b45f4ef139a2 << */
+  struct utimbuf
+  {
+    time_t actime;
+    time_t modtime;
+  };
+
+  /* >> LABSYNC DO NOT TOUCH: d9880975-e8a9-4cfa-bb72-5927bdbcde62 << */
+  struct uuid_command
+  {
+    uint32_t cmd;
+    uint32_t cmdsize;
+    uint8_t uuid[16];
+  };
+names:
+  0x100000000: __mh_execute_header
+  0x1000005ec: aUsrLibDyld
+  0x100000678: aUsrLibLibsyste
+  0x10000173c: _bi_init
+  0x100001768: _file_read
+  0x100001864: _send_bits
+  0x1000019bc: _flush_outbuf
+  0x1000019fc: _bi_reverse
+  0x100001a28: _bi_windup
+  0x100001b8c: _copy_block
+  0x100001d9c: _lm_init
+  0x10000201c: _error
+  0x10000205c: _longest_match
+  0x1000022ec: _deflate
+  0x100002ed4: _ct_tally
+  0x100003208: _flush_block
+  0x100003898: __getopt_internal
+  0x100004480: _getopt
+  0x10000448c: _zip
+  0x100004954: _main
+  0x1000051c4: def_100004B84
+  0x100005208: _base_name
+  0x100005230: _add_envopt
+  0x100005414: _abort_gzip_signal
+  0x100005424: _getopt_long
+  0x100005428: _lzw
+  0x100005494: _treat_file
+  0x100005cfc: _treat_stdin
+  0x1000060d4: _do_list
+  0x100006738: _abort_gzip
+  0x1000067a4: _huft_build
+  0x100006f64: _huft_free
+  0x100006f8c: _inflate_codes
+  0x10000757c: _fill_inbuf
+  0x100007718: _flush_window
+  0x100007798: _inflate_stored
+  0x100007a74: _inflate_fixed
+  0x100007bc8: _inflate_dynamic
+  0x100008220: _inflate_block
+  0x10000836c: _inflate
+  0x100008460: _ct_init
+  0x10000882c: _gen_codes
+  0x1000089c4: _init_block
+  0x100008adc: _build_tree_1
+  0x100009138: _compress_block
+  0x1000092ac: _unlzh
+  0x100009bb0: _write_buf
+  0x100009c14: _unlzw
+  0x10000a3ac: _read_error
+  0x10000a418: _unpack
+  0x10000ab2c: _check_zipfile
+  0x10000ac3c: _unzip
+  0x10000b4f8: _updcrc
+  0x10000b538: _copy
+  0x10000b648: _clear_bufs
+  0x10000b674: _write_error
+  0x10000b6c0: _strlwr
+  0x10000b73c: _xunlink
+  0x10000b740: _make_simple_name
+  0x10000b78c: _xmalloc
+  0x10000b7e0: _warning
+  0x10000b84c: _display_ratio
+  0x10000b894: _fprint_off
+  0x10000b9a8: _yesno
+  0x10000ba6c: _rpmatch
+  0x10000baa0: _getopt_long_only
+  0x10000baa8: _get_method
+  0x10000c41c: _reset_times
+  0x10000c4e0: _make_ofname
+  0x10000c730: _create_outfile
+  0x10000ccc4: _copy_stat
+  0x10000ce94: _get_suffix
+  0x10000d01c: _shorten_name
+  0x10000d24c: _do_remove
+  0x10000d280: _send_tree
+  0x10000d590: _fillbuf
+  0x10000d6bc: _read_pt_len
+  0x10000d8a4: _make_table
+  0x10000dbf0: _OUTLINED_FUNCTION_0
+  0x10000dcb0: _OUTLINED_FUNCTION_11
+  0x10000dcb8: _OUTLINED_FUNCTION_12
+  0x10000dd08: _OUTLINED_FUNCTION_18
+  0x10000dda8: _OUTLINED_FUNCTION_27
+  0x10000de98: _OUTLINED_FUNCTION_42
+  0x10000dec4: _OUTLINED_FUNCTION_45
+  0x10000df2c: _OUTLINED_FUNCTION_52
+  0x10000dfd4: _OUTLINED_FUNCTION_61
+  0x10000e068: _OUTLINED_FUNCTION_72
+  0x10000e0b0: _OUTLINED_FUNCTION_76
+  0x10000e184: _OUTLINED_FUNCTION_89
+  0x10000e1c8: _OUTLINED_FUNCTION_93
+  0x10000e2e0: _progerror
+  0x10000e330: _treat_file.cold.1
+  0x10000e380: _treat_file.cold.2
+  0x10000e404: _treat_file.cold.3
+  0x10000e454: _treat_stdin.cold.1
+  0x10000e4e8: _write_buf.cold.1
+  0x10000e534: _unlzw.cold.1
+  0x10000e580: _create_outfile.cold.1
+  0x10000e5ec: _create_outfile.cold.2
+  0x10000e66c: _create_outfile.cold.3
+  0x10000e6c0: ___error
+  0x10000e6cc: ___maskrune
+  0x10000e6d8: ___strcat_chk
+  0x10000e6e4: ___strcpy_chk
+  0x10000e6f0: ___tolower
+  0x10000e6fc: __exit
+  0x10000e708: _atoi
+  0x10000e714: _bzero
+  0x10000e720: _calloc
+  0x10000e72c: _close
+  0x10000e738: _closedir
+  0x10000e744: _ctime
+  0x10000e750: _exit
+  0x10000e75c: _fchmod
+  0x10000e768: _fchown
+  0x10000e774: _fflush
+  0x10000e780: _fileno
+  0x10000e78c: _fprintf
+  0x10000e798: _fputc
+  0x10000e7a4: _free
+  0x10000e7b0: _fstat
+  0x10000e7bc: _fwrite
+  0x10000e7c8: _getchar
+  0x10000e7d4: _getenv
+  0x10000e7e0: _isatty
+  0x10000e7ec: _lseek
+  0x10000e7f8: _lstat
+  0x10000e804: _malloc
+  0x10000e810: _memcpy
+  0x10000e81c: _memset
+  0x10000e828: _memset_pattern16
+  0x10000e834: _open
+  0x10000e840: _opendir
+  0x10000e84c: _perror
+  0x10000e858: _printf
+  0x10000e864: _putc
+  0x10000e870: _putchar
+  0x10000e87c: _puts
+  0x10000e888: _read
+  0x10000e894: _readdir
+  0x10000e8a0: _signal
+  0x10000e8ac: _stat
+  0x10000e8b8: _strchr
+  0x10000e8c4: _strcmp
+  0x10000e8d0: _strcpy
+  0x10000e8dc: _strcspn
+  0x10000e8e8: _strlen
+  0x10000e8f4: _strncmp
+  0x10000e900: _strrchr
+  0x10000e90c: _strspn
+  0x10000e918: _unlink
+  0x10000e924: _utime
+  0x10000e930: _write
+  0x10000ebd0: jpt_100004B84
+  0x10000ecc0: _configuration_table
+  0x10000ed10: _border
+  0x10000ed5c: _bl_order
+  0x10000edb0: aBadPackLevel
+  0x10000edc2: aSOptionSIsAmbi
+  0x10000ede0: aSOptionSDoesnT
+  0x10000ee0d: aSOptionCSDoesn
+  0x10000ee3a: aSOptionSRequir
+  0x10000ee60: aSUnrecognizedO
+  0x10000ee80: aSUnrecognizedO_0
+  0x10000eea1: aSIllegalOption
+  0x10000eebb: aSInvalidOption
+  0x10000eed5: aSOptionRequire
+  0x10000eefc: aSOptionWSIsAmb
+  0x10000ef1d: aSOptionWSDoesn
+  0x10000ef4b: aAscii
+  0x10000ef51: aToStdout
+  0x10000ef5b: aStdout
+  0x10000ef62: aDecompress
+  0x10000ef6d: aUncompress
+  0x10000ef78: aForce
+  0x10000ef7e: aHelp
+  0x10000ef83: aList
+  0x10000ef88: aLicense
+  0x10000ef90: aNoName
+  0x10000ef98: aName
+  0x10000ef9d: aQuiet
+  0x10000efa3: aSilent
+  0x10000efaa: aRecursive
+  0x10000efb4: aSuffix
+  0x10000efbb: aTest
+  0x10000efc0: aNoTime
+  0x10000efc8: aVerbose
+  0x10000efd0: aVersion
+  0x10000efd8: aFast
+  0x10000efdd: aBest
+  0x10000efe2: aLzw
+  0x10000efe6: aBits
+  0x10000efeb: aRsyncable
+  0x10000eff5: aExe
+  0x10000effa: aGzip
+  0x10000efff: aUn
+  0x10000f002: aGun
+  0x10000f006: aCat
+  0x10000f00a: aGzcat
+  0x10000f010: aGz
+  0x10000f014: aAbCdfhhLlmmnnq
+  0x10000f035: aSBOperandIsNot
+  0x10000f057: aSZNotSupported
+  0x10000f07d: aSOptionAsciiIg
+  0x10000f0a8: aSIncorrectSuff
+  0x10000f0c3: aIncompleteLite
+  0x10000f0dd: aIncompleteDist
+  0x10000f0f8: aOutputInCompre
+  0x10000f124: aSSWarningUnkno
+  0x10000f14a: aSSCompressedWi
+  0x10000f185: aCorruptInput
+  0x10000f194: aCorruptInputUs
+  0x10000f1c2: aInvalidCompres
+  0x10000f1e8: aSSNotAValidZip
+  0x10000f207: aSSFirstEntryNo
+  0x10000f241: aSSEncryptedFil
+  0x10000f267: aOutOfMemory
+  0x10000f275: aInvalidCompres_0
+  0x10000f29e: aLenLdSizLd
+  0x10000f2b0: aInvalidCompres_1
+  0x10000f2d9: aInternalErrorI
+  0x10000f2f8: aSSInvalidCompr
+  0x10000f325: aSSInvalidCompr_0
+  0x10000f355: aSSHasMoreThanO
+  0x10000f383: aSSHasMoreThanO_0
+  0x10000f3b3: aArgc0
+  0x10000f3bb: aSSS
+  0x10000f3c8: aSSWarningS
+  0x10000f3dd: aS
+  0x10000f3e3: aSUnexpectedEnd
+  0x10000f3ff: a51f
+  0x10000f40a: aPosixlyCorrect
+  0x10000f41a: aUsageSScdfhlln
+  0x10000f451: aR
+  0x10000f453: aCStdoutWriteOn
+  0x10000f49d: aDDecompressDec
+  0x10000f4ba: aFForceForceOve
+  0x10000f4fe: aHHelpGiveThisH
+  0x10000f51f: aLListListCompr
+  0x10000f54f: aLLicenseDispla
+  0x10000f57a: aNNoNameDoNotSa
+  0x10000f5c4: aNNameSaveOrRes
+  0x10000f607: aQQuietSuppress
+  0x10000f62f: aRRecursiveOper
+  0x10000f664: aSSufSuffixSufU
+  0x10000f6a4: aTTestTestCompr
+  0x10000f6d5: aVVerboseVerbos
+  0x10000f6f4: aVVersionDispla
+  0x10000f71d: a1FastCompressF
+  0x10000f73f: a9BestCompressB
+  0x10000f761: aRsyncableMakeR
+  0x10000f78f: aFileFilesToDeC
+  0x10000f7db: aReportBugsToBu
+  0x10000f7fe: aSSS_0
+  0x10000f80a: a135
+  0x10000f810: a20020930
+  0x10000f81b: aCopyright2002F
+  0x10000f843: aCopyright19921
+  0x10000f868: aThisProgramCom
+  0x10000f898: aYouMayRedistri
+  0x10000f8c4: aUnderTheTermsO
+  0x10000f8f7: aForMoreInforma
+  0x10000f93d: aCompilationOpt
+  0x10000f959: aDirent
+  0x10000f960: aUtime
+  0x10000f966: aStdcHeaders
+  0x10000f974: aHaveUnistdH
+  0x10000f983: aHaveMemoryH
+  0x10000f992: aHaveStringH
+  0x10000f9a1: aHaveLstat
+  0x10000f9ad: aSCompressedDat
+  0x10000f9f4: aReadFrom
+  0x10000f9fe: aWrittenTo
+  0x10000fa09: aDe
+  0x10000fa0c: aForHelpTypeSH
+  0x10000fa23: aStdin
+  0x10000fa29: aStandardInput
+  0x10000fa38: aOk
+  0x10000fa3d: aS_0
+  0x10000fa45: aSSUnknownMetho
+  0x10000fa71: aSSIsEncryptedN
+  0x10000fa97: aSSIsAAMultiPar
+  0x10000facc: aSSHasFlags0xXN
+  0x10000faf4: aSSPartNumberU
+  0x10000fb0c: aSSExtraFieldOf
+  0x10000fb35: aCorruptedInput
+  0x10000fb5c: aPk
+  0x10000fb6a: aSSNotInGzipFor
+  0x10000fb87: aSSDecompressio
+  0x10000fbbf: aSSDecompressio_0
+  0x10000fbf6: aSSIsADirectory
+  0x10000fc18: aSSIsNotADirect
+  0x10000fc4f: aSSHasLuOtherLi
+  0x10000fc79: aSSCompressedTo
+  0x10000fc92: aS_1
+  0x10000fc97: aOk_0
+  0x10000fc9b: aReplacedWithS
+  0x10000fcb0: aZ
+  0x10000fcb3: aZ_0
+  0x10000fcb6: aZ_1
+  0x10000fcb9: aSSFileNameTooL
+  0x10000fcd5: aTaz
+  0x10000fcda: aTgz
+  0x10000fcdf: aGz_0
+  0x10000fce3: aZ_2
+  0x10000fce6: aZ_3
+  0x10000fced: aSSSPathnameToo
+  0x10000fd0b: aSSUnknownSuffi
+  0x10000fd2e: aTar
+  0x10000fd33: aSSAlreadyHasSS
+  0x10000fd5e: aSSWarningNameT
+  0x10000fd7f: aSSCannotScompr
+  0x10000fda6: aSSAndSAreTheSa
+  0x10000fdc7: aSSAlreadyExist
+  0x10000fdde: aDoYouWishToOve
+  0x10000fe03: aNotOverwritten
+  0x10000fe15: aNameTooShort
+  0x10000fe24: aCanTRecoverSuf
+  0x10000fe3a: aInternalErrorI_0
+  0x10000fe59: aSTimeStampRest
+  0x10000fe72: aStore
+  0x10000fe78: aCompr
+  0x10000fe7e: aPack
+  0x10000fe84: aLzh
+  0x10000fe8a: aDefla
+  0x10000fe90: aMethodCrcDateT
+  0x10000fead: aSSRatioUncompr
+  0x10000fed3: aCompressed
+  0x10000fede: aUncompressed
+  0x10000ff08: a5s08lx11s
+  0x10000ff18: aS_2
+  0x10000ff1d: aBadTable
+  0x10000ff28: aInvalidCompres_2
+  0x10000ff5a: aTooManyLeavesI
+  0x10000ff7a: aWrittenByJeanL
+  0x10000ff97: aTotals
+  0x100010000: __DefaultRuneLocale_ptr
+  0x100010008: ___stderrp_ptr
+  0x100010010: ___stdinp_ptr
+  0x100010018: ___stdoutp_ptr
+  0x100010020: dyld_stub_binder_ptr
+  0x100010028: _do_list.methods
+  0x100014000: ___error_ptr
+  0x100014008: ___maskrune_ptr
+  0x100014010: ___strcat_chk_ptr
+  0x100014018: ___strcpy_chk_ptr
+  0x100014020: ___tolower_ptr
+  0x100014028: __exit_ptr
+  0x100014030: _atoi_ptr
+  0x100014038: _bzero_ptr
+  0x100014040: _calloc_ptr
+  0x100014048: _close_ptr
+  0x100014050: _closedir_ptr
+  0x100014058: _ctime_ptr
+  0x100014060: _exit_ptr
+  0x100014068: _fchmod_ptr
+  0x100014070: _fchown_ptr
+  0x100014078: _fflush_ptr
+  0x100014080: _fileno_ptr
+  0x100014088: _fprintf_ptr
+  0x100014090: _fputc_ptr
+  0x100014098: _free_ptr
+  0x1000140a0: _fstat_ptr
+  0x1000140a8: _fwrite_ptr
+  0x1000140b0: _getchar_ptr
+  0x1000140b8: _getenv_ptr
+  0x1000140c0: _isatty_ptr
+  0x1000140c8: _lseek_ptr
+  0x1000140d0: _lstat_ptr
+  0x1000140d8: _malloc_ptr
+  0x1000140e0: _memcpy_ptr
+  0x1000140e8: _memset_ptr
+  0x1000140f0: _memset_pattern16_ptr
+  0x1000140f8: _open_ptr
+  0x100014100: _opendir_ptr
+  0x100014108: _perror_ptr
+  0x100014110: _printf_ptr
+  0x100014118: _putc_ptr
+  0x100014120: _putchar_ptr
+  0x100014128: _puts_ptr
+  0x100014130: _read_ptr
+  0x100014138: _readdir_ptr
+  0x100014140: _signal_ptr
+  0x100014148: _stat_ptr
+  0x100014150: _strchr_ptr
+  0x100014158: _strcmp_ptr
+  0x100014160: _strcpy_ptr
+  0x100014168: _strcspn_ptr
+  0x100014170: _strlen_ptr
+  0x100014178: _strncmp_ptr
+  0x100014180: _strrchr_ptr
+  0x100014188: _strspn_ptr
+  0x100014190: _unlink_ptr
+  0x100014198: _utime_ptr
+  0x1000141a0: _write_ptr
+  0x1000141a8: __dyld_private
+  0x1000141b0: _window_size
+  0x1000141b8: _optind
+  0x1000141bc: _opterr
+  0x1000141c0: _optopt
+  0x1000141c4: _no_name
+  0x1000141c8: _no_time
+  0x1000141cc: _maxbits
+  0x1000141d0: _method
+  0x1000141d4: _level
+  0x1000141d8: _longopts
+  0x1000144f8: _work
+  0x100014500: _mask_bits
+  0x100014524: _lbits
+  0x100014528: _dbits
+  0x10001452c: _block_mode
+  0x100014530: _updcrc.crc
+  0x100014538: _crc_32_tab
+  0x100014d38: _get_istat.suffixes
+  0x100014d68: _get_suffix.known_suffixes
+  0x100014db0: _extra_blbits
+  0x100014e00: __MergedGlobals
+  0x100015058: _read_buf
+  0x100015060: _outcnt
+  0x100015064: _good_match
+  0x100015068: _nice_match
+  0x10001506c: _max_chain_length
+  0x100015070: _strstart
+  0x100015078: _block_start
+  0x100015080: _prev_length
+  0x100015084: _match_start
+  0x100015088: _rsync
+  0x100015090: _optarg
+  0x100015098: ___getopt_initialized
+  0x10001509c: _ascii
+  0x1000150a0: _to_stdout
+  0x1000150a4: _decompress
+  0x1000150a8: _force
+  0x1000150ac: _recursive
+  0x1000150b0: _list
+  0x1000150b4: _verbose
+  0x1000150b8: _quiet
+  0x1000150bc: _do_lzw
+  0x1000150c0: _test
+  0x1000150c4: _exit_code
+  0x1000150c8: _args
+  0x1000150d0: _remove_ofname
+  0x1000150d8: _progname
+  0x1000150e0: _env
+  0x1000150e8: _foreground
+  0x1000150f0: _z_suffix
+  0x1000150f8: _z_len
+  0x100015100: _hufts
+  0x100015108: _bb
+  0x100015110: _bk
+  0x100015114: _inptr
+  0x100015118: _insize
+  0x10001511c: _inbuf
+  0x10001d160: _file_type
+  0x10001d168: _file_method
+  0x10001d170: _d_buf
+  0x10002d170: _ifd
+  0x10002d174: _ofd
+  0x10002d178: _ifname
+  0x10002d578: _bytes_in
+  0x10002d580: _bytes_out
+  0x10002d588: _pkzip
+  0x10002d58c: _ext_header
+  0x10002d590: _decrypt
+  0x10002d594: _ofname
+  0x10002d994: _save_orig_name
+  0x10002d998: _time_stamp
+  0x10002d9a0: _header_bytes
+  0x10002d9a8: _outbuf
+  0x1000321a8: _window
+  0x1000421a8: _prev
+  0x1000621a8: _last_member
+  0x1000621ac: _part_nb
+  0x1000621b0: _ifile_size
+  0x1000621b8: _total_in
+  0x1000621c0: _total_out
+  0x1000621c8: _istat
+  0x100062258: _key
+  0x100062260: _msg_done
+  0x100062261: _flag_buf
+  0x100063264: _do_list.first_time
+  0x100063268: _do_exit.in_exit
+  0x10006326c: _heap
+  0x100063b60: __MergedGlobals.212
+  0x1000648ae: __MergedGlobals.213
+  0x100065630: __DefaultRuneLocale
+  0x100065638: ___stderrp
+  0x100065640: ___stdinp
+  0x100065648: ___stdoutp
+  0x100065650: dyld_stub_binder
+  0x100065658: __imp____error
+  0x100065660: __imp____maskrune
+  0x100065668: __imp____strcat_chk
+  0x100065670: __imp____strcpy_chk
+  0x100065678: __imp____tolower
+  0x100065680: __imp___exit
+  0x100065688: __imp__atoi
+  0x100065690: __imp__bzero
+  0x100065698: __imp__calloc
+  0x1000656a0: __imp__close
+  0x1000656a8: __imp__closedir
+  0x1000656b0: __imp__ctime
+  0x1000656b8: __imp__exit
+  0x1000656c0: __imp__fchmod
+  0x1000656c8: __imp__fchown
+  0x1000656d0: __imp__fflush
+  0x1000656d8: __imp__fileno
+  0x1000656e0: __imp__fprintf
+  0x1000656e8: __imp__fputc
+  0x1000656f0: __imp__free
+  0x1000656f8: __imp__fstat
+  0x100065700: __imp__fwrite
+  0x100065708: __imp__getchar
+  0x100065710: __imp__getenv
+  0x100065718: __imp__isatty
+  0x100065720: __imp__lseek
+  0x100065728: __imp__lstat
+  0x100065730: __imp__malloc
+  0x100065738: __imp__memcpy
+  0x100065740: __imp__memset
+  0x100065748: __imp__memset_pattern16
+  0x100065750: __imp__open
+  0x100065758: __imp__opendir
+  0x100065760: __imp__perror
+  0x100065768: __imp__printf
+  0x100065770: __imp__putc
+  0x100065778: __imp__putchar
+  0x100065780: __imp__puts
+  0x100065788: __imp__read
+  0x100065790: __imp__readdir
+  0x100065798: __imp__signal
+  0x1000657a0: __imp__stat
+  0x1000657a8: __imp__strchr
+  0x1000657b0: __imp__strcmp
+  0x1000657b8: __imp__strcpy
+  0x1000657c0: __imp__strcspn
+  0x1000657c8: __imp__strlen
+  0x1000657d0: __imp__strncmp
+  0x1000657d8: __imp__strrchr
+  0x1000657e0: __imp__strspn
+  0x1000657e8: __imp__unlink
+  0x1000657f0: __imp__utime
+  0x1000657f8: __imp__write
+prototypes:
+  0x100001768: __int64 __fastcall _file_read(void *, size_t)
+  0x1000022ec: int __cdecl _deflate(z_streamp strm, int flush)
+  0x100003898: __int64 __fastcall __getopt_internal(int, int, char *__s)
+  0x100004480: int __cdecl _getopt(int, char *const [], const char *)
+  0x100004954: int __fastcall _main(int argc, const char **argv, const char **envp)
+  0x100005230: __int64 __fastcall _add_envopt(int, int, char *)
+  0x100005424: int __cdecl _getopt_long(int, char *const *, const char *, const option
+    *, int *)
+  0x100005494: __int64 __fastcall _treat_file(_QWORD)
+  0x100005cfc: __int64 __fastcall _treat_stdin(_QWORD)
+  0x1000060d4: __int64 __fastcall _do_list(int)
+  0x10000836c: int __cdecl _inflate(z_streamp strm, int flush)
+  0x100008460: __int64 __fastcall _ct_init(__int64, __int64)
+  0x10000882c: __int64 _gen_codes(void)
+  0x1000089c4: __int64 __fastcall _init_block(_QWORD)
+  0x100009bb0: __int64 __fastcall _write_buf(int, int, size_t __nbyte)
+  0x100009c14: __int64 __fastcall _unlzw(int, int)
+  0x10000b538: void __cdecl _copy(const std::__fs::filesystem::path *__from, const
+    std::__fs::filesystem::path *__to, std::__fs::filesystem::copy_options __opt,
+    std::error_code *__ec)
+  0x10000b73c: int __cdecl _xunlink(const char *)
+  0x10000b78c: __int64 __fastcall _xmalloc(size_t __size)
+  0x10000ba6c: int __cdecl _rpmatch(const char *)
+  0x10000baa0: int __cdecl _getopt_long_only(int, char *const *, const char *, const
+    option *, int *)
+  0x10000de98: __int64 __fastcall _OUTLINED_FUNCTION_42(_QWORD)
+  0x10000dfd4: void __noreturn _OUTLINED_FUNCTION_61(void)
+  0x10000e6c0: int *___error(void)
+  0x10000e6f0: int __cdecl ___tolower(int)
+  0x10000e6fc: void __cdecl __noreturn __exit(int)
+  0x10000e708: int __cdecl _atoi(const char *)
+  0x10000e714: void __cdecl _bzero(void *, size_t)
+  0x10000e720: void *__cdecl _calloc(size_t __count, size_t __size)
+  0x10000e72c: int __cdecl _close(int)
+  0x10000e738: int __cdecl _closedir(DIR *)
+  0x10000e744: char *__cdecl _ctime(const time_t *)
+  0x10000e750: void __cdecl __noreturn _exit(int)
+  0x10000e75c: int __cdecl _fchmod(int, mode_t)
+  0x10000e768: int __cdecl _fchown(int, uid_t, gid_t)
+  0x10000e774: int __cdecl _fflush(FILE *)
+  0x10000e780: int __cdecl _fileno(FILE *)
+  0x10000e78c: int _fprintf(FILE *, const char *, ...)
+  0x10000e798: int __cdecl _fputc(int, FILE *)
+  0x10000e7a4: void __cdecl _free(void *)
+  0x10000e7b0: int __cdecl _fstat(int, stat *)
+  0x10000e7bc: size_t __cdecl _fwrite(const void *__ptr, size_t __size, size_t __nitems,
+    FILE *__stream)
+  0x10000e7c8: int _getchar(void)
+  0x10000e7d4: char *__cdecl _getenv(const char *)
+  0x10000e7e0: int __cdecl _isatty(int)
+  0x10000e7ec: off_t __cdecl _lseek(int, off_t, int)
+  0x10000e7f8: int __cdecl _lstat(const char *, stat *)
+  0x10000e804: void *__cdecl _malloc(size_t __size)
+  0x10000e810: void *__cdecl _memcpy(void *__dst, const void *__src, size_t __n)
+  0x10000e81c: void *__cdecl _memset(void *__b, int __c, size_t __len)
+  0x10000e828: void __cdecl _memset_pattern16(void *__b, const void *__pattern16,
+    size_t __len)
+  0x10000e834: int _open(const char *, int, ...)
+  0x10000e840: DIR *__cdecl _opendir(const char *)
+  0x10000e84c: void __cdecl _perror(const char *)
+  0x10000e858: int _printf(const char *, ...)
+  0x10000e864: int __cdecl _putc(int, FILE *)
+  0x10000e870: int __cdecl _putchar(int)
+  0x10000e87c: int __cdecl _puts(const char *)
+  0x10000e888: ssize_t __cdecl _read(int, void *, size_t)
+  0x10000e894: dirent *__cdecl _readdir(DIR *)
+  0x10000e8a0: void (__cdecl *__cdecl _signal(int, void (__cdecl *)(int)))(int)
+  0x10000e8ac: int __cdecl _stat(const char *, stat *)
+  0x10000e8b8: char *__cdecl _strchr(char *__s, int __c)
+  0x10000e8c4: int __cdecl _strcmp(const char *__s1, const char *__s2)
+  0x10000e8d0: char *__cdecl _strcpy(char *__dst, const char *__src)
+  0x10000e8dc: size_t __cdecl _strcspn(const char *__s, const char *__charset)
+  0x10000e8e8: size_t __cdecl _strlen(const char *__s)
+  0x10000e8f4: int __cdecl _strncmp(const char *__s1, const char *__s2, size_t __n)
+  0x10000e900: char *__cdecl _strrchr(char *__s, int __c)
+  0x10000e90c: size_t __cdecl _strspn(const char *__s, const char *__charset)
+  0x10000e918: int __cdecl _unlink(const char *)
+  0x10000e924: int __cdecl _utime(const char *, const utimbuf *)
+  0x10000e930: ssize_t __cdecl _write(int __fd, const void *__buf, size_t __nbyte)
+version: 0x4

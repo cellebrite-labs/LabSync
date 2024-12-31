@@ -1,0 +1,6 @@
+PyYAML
+GitPython
+sark
+ida-netnode
+parse
+# functioninliner
