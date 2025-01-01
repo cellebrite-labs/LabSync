@@ -166,6 +166,29 @@ using `Edit > Plugins > LabSync > Disable` and then use `Edit > Plugins > LabSyn
 If LabSync will be enabled afterwards, it'll treat the IDB as "new" when syncing it with the repo,
 and in case it won't be deleted from git, it'll be merged with the existing repo data.
 
+## Mapping segments to a different data file
+
+In some cases it's useful to reverse a binary together with a software library that it uses in the
+same IDB. In order to support syncing features related to the library between the IDBs of different
+binaries that use it, you can ask LabSync to sync some segments to separate files.
+
+Note that all of the local types will be synced to all of the associated files, so in case of a
+conflict involving local types, you may have to resolve it more than once during conflict
+resolution.
+
+This functionality is mostly intended to be used by IDA loaders, so we don't expose it using UI,
+but rather using the following API:
+
+```python
+from labsync import LabSyncPlugin
+LabSyncPlugin.map_segments_to_idb_id(seg_prefix, idb_id)
+```
+
+Where `seg_prefix` is e.g. `libwhatever.` and `idb_id` can technically be any string, but is
+expected to be the MD5 hash of the `libwhatever` binary. This will cause LabSync to sync features
+(e.g. names, prototypes) related to EAs whose segment name starts with `<seg_prefix>` to
+`<idb_id>.yaml` instead of the main YAML file.
+
 ## Known issues
 
 1. LabSync does not currently do things as creating functions or changing their properties, so this
@@ -200,7 +223,7 @@ and in case it won't be deleted from git, it'll be merged with the existing repo
    4. We encountered cases where IDA would complain about `Type 'id' is already defined` where
       some struct name is `id` under namespaces. You can rename it to work around the issue.
    5. We encountered an issue where IDA misinterprets nested namespaces, e.g. for:
-      ```
+      ```c
       struct B::fields {
         int b;
       };
