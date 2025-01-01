@@ -1490,7 +1490,8 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
     @classmethod
     @property
     def idb_id(cls) -> str:
-        return ida_nalt.retrieve_input_file_md5().hex()
+        default_id = ida_nalt.retrieve_input_file_md5().hex()
+        return cls.netnode.get("custom_idb_id", default_id)
 
     def _register(self) -> None:
         for t in LabSyncPlugin.menu_actions_types:
