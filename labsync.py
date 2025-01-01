@@ -118,6 +118,10 @@ class LabSyncLockError(LabSyncError):
     pass
 
 
+class LabSyncBinaryMatchingError(LabSyncError):
+    pass
+
+
 # HELPERS
 
 
@@ -168,12 +172,12 @@ def local_types() -> Generator[str]:
 # EXPORT LOGIC
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=True, order=True)
 class SyncedBinary:
-    idb_id: str
-    start_ea: int
-    end_ea: int  # exclusive
-    base_ea: int
+    idb_id: str = dataclasses.field(compare=False)
+    start_ea: int = 0  # must be the first field, because we rely on it when sorting
+    end_ea: int = ida_idaapi.BADADDR  # exclusive
+    base_ea: int = 0
 
     def contains(self, ea: int) -> bool:
         return self.start_ea <= ea < self.end_ea
@@ -1465,6 +1469,7 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
     CFGFILE: str = "labsync.cfg"
     NETNODE: str = "$ labsync.plugin"
     TYPES_NETNODE: str = "$ labsync.types"
+    BINARIES_NETNODE: str = "$ labsync.binaries"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1649,17 +1654,98 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
     @classmethod
     @property
     @functools.cache
-    def _default_binary(cls) -> SyncedBinary:
-        return SyncedBinary(
-            idb_id=cls.idb_id,
-            start_ea=0,
-            end_ea=ida_idaapi.BADADDR,
-            base_ea=0,
-        )
+    def _binaries_netnode(cls) -> netnode.Netnode:
+        return netnode.Netnode(LabSyncPlugin.BINARIES_NETNODE)
 
+    @classmethod
     @property
-    def binaries(self) -> Generator[SyncedBinary]:
-        yield self._default_binary
+    def binaries(cls) -> tuple[SyncedBinary, ...]:
+        rules = dict(cls._binaries_netnode.items())
+        return cls._binaries_from_mapping_rules(rules)
+
+    @classmethod
+    def _binaries_from_mapping_rules(cls, rules: dict[str, str]) -> tuple[SyncedBinary, ...]:
+        if not rules:
+            return (SyncedBinary(idb_id=cls.idb_id),)
+
+        # generate a synced binary per every segment matching rule and the default
+        seg2bin = {}
+        for seg_prefix, idb_id in rules.items():
+            # start with start_ea/end_ea pointing at max/min, and we'll have update them in the
+            # next loop
+            seg2bin[seg_prefix] = SyncedBinary(
+                idb_id=idb_id, start_ea=ida_idaapi.BADADDR, end_ea=0,
+            )
+        default_bin = SyncedBinary(idb_id=cls.idb_id, start_ea=ida_idaapi.BADADDR, end_ea=0)
+
+        # find the start/end EAs for each synced binary
+        for i in range(ida_segment.get_segm_qty()):
+            seg = ida_segment.getnseg(i)
+            name = ida_segment.get_segm_name(seg)
+
+            # skip inlined chunks segments
+            if name.startswith("inlined_"):
+                continue
+
+            matched = False
+            for seg_prefix, binary in seg2bin.items():
+                if name.startswith(seg_prefix):
+                    binary.base_ea = binary.start_ea = min(binary.start_ea, seg.start_ea)
+                    binary.end_ea = max(binary.end_ea, seg.end_ea)
+                    matched = True
+
+            if not matched:
+                default_bin.start_ea = min(default_bin.start_ea, seg.start_ea)
+                default_bin.end_ea = max(default_bin.end_ea, seg.end_ea)
+
+        # remove synced binaries that didn't match any segment
+        for seg, _bin in list(seg2bin.items()):
+            if _bin.start_ea == ida_idaapi.BADADDR:
+                del seg2bin[seg]
+        if default_bin.start_ea == ida_idaapi.BADADDR:
+            assert default_bin.end_ea == 0
+            default_bin.start_ea = 0  # make it empty
+
+        # make sure that none of the synced binaries overlap
+        last_bin = None
+        last_seg = None
+        for _bin, seg in sorted(
+                [(_bin, seg) for (seg, _bin) in seg2bin.items()] + [(default_bin, "<default>")],
+            ):
+
+            assert _bin.start_ea <= _bin.end_ea
+            if last_bin:
+                assert last_bin.start_ea <= _bin.start_ea
+                if last_bin.end_ea > _bin.start_ea:
+                    msg = f"Found overlapping segments for {last_seg!r} and {seg!r}"
+                    raise LabSyncBinaryMatchingError(msg)
+
+            last_bin = _bin
+            last_seg = seg
+
+        binaries = (default_bin, *seg2bin.values())
+
+        # make sure the we don't have overlapping IDB ids
+        assert len(binaries) == len({b.idb_id for b in binaries})
+
+        return binaries
+
+    @classmethod
+    def map_segments_to_idb_id(cls, seg_prefix: str, idb_id: str) -> None:
+        rules = dict(cls._binaries_netnode.items())
+
+        new_rules = rules.copy()
+        new_rules[seg_prefix] = idb_id
+
+        # check that the new rules are valid
+        try:
+            cls._binaries_from_mapping_rules(new_rules)
+        except LabSyncBinaryMatchingError:
+            logger.exception(f"failed mapping segment prefix {seg_prefix!r} to idb id {idb_id}")
+            return
+
+        # add the rule to netnode
+        cls._binaries_netnode[seg_prefix] = idb_id
 
     def sync(self) -> None:
         assert not self.sync_in_progress
@@ -1685,11 +1771,13 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
                         logger.debug(f"adopting local type uuids from commit: {latest_commit}")
                         adopt_uuids(latest_data, self.types)
 
+                binaries = self.binaries  # precompute here for all of the times we'll need it
+
                 # sync IDB -> repo
                 commit = base
                 changed = False
                 data = {}
-                for i, binary in enumerate(self.binaries):
+                for i, binary in enumerate(binaries):
                     if i > 1:
                         logger.debug(f"saving part to {binary.idb_id}")
 
@@ -1715,7 +1803,7 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
 
                 # sync repo -> IDB
                 new_data = {}
-                for binary in self.binaries:
+                for binary in binaries:
                     bin_new_data, new_commit = self.repo.get(binary.idb_id)
                     new_data[binary.idb_id] = bin_new_data
 
@@ -1723,7 +1811,7 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
                 if new_data != data:
                     logger.debug("syncing changes from repo")
                     with wait_box("syncing changes from repo...", hide_cancel=True):
-                        for i, binary in enumerate(self.binaries):
+                        for i, binary in enumerate(binaries):
                             bin_data = data[binary.idb_id]
                             bin_new_data = new_data[binary.idb_id]
 
