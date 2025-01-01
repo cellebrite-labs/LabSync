@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import configparser
 import contextlib
+import dataclasses
 import functools
 import io
 import logging
@@ -167,9 +168,29 @@ def local_types() -> Generator[str]:
 # EXPORT LOGIC
 
 
-def dump_names(storage: functioninliner.ClonesStorage) -> dict[int, str]:
+@dataclasses.dataclass
+class SyncedBinary:
+    idb_id: str
+    start_ea: int
+    end_ea: int  # exclusive
+    base_ea: int
+
+    def contains(self, ea: int) -> bool:
+        return self.start_ea <= ea < self.end_ea
+
+    def ea2dump(self, ea: int) -> int:
+        return ea - self.base_ea
+
+    def dump2ea(self, dea: int) -> int:
+        return dea + self.base_ea
+
+
+def dump_names(binary: SyncedBinary, storage: functioninliner.ClonesStorage) -> dict[int, str]:
     d = {}
     for ea, name in idautils.Names():
+        if not binary.contains(ea):
+            continue
+
         seg = ida_segment.getseg(ea)
         seg_name = ida_segment.get_segm_name(seg)
 
@@ -181,13 +202,15 @@ def dump_names(storage: functioninliner.ClonesStorage) -> dict[int, str]:
         if ea in storage:
             continue
 
-        d[ea] = name
+        dea = binary.ea2dump(ea)
+        d[dea] = name
 
     return d
 
 
-def dump_inlined_funcs(storage: functioninliner.ClonesStorage) -> list[int]:
-    return list(sorted(storage.keys()))  # noqa: C413
+def dump_inlined_funcs(binary: SyncedBinary, storage: functioninliner.ClonesStorage) -> list[int]:
+    funcs = (binary.ea2dump(ea) for ea in storage if binary.contains(ea))
+    return list(sorted(funcs))  # noqa: C413
 
 
 def dump_local_types(types: netnode.Netnode) -> str:
@@ -546,9 +569,14 @@ def prototype(ea: int) -> str:
     return ida_typeinf.print_tinfo(None, 0, 0, ida_typeinf.PRTYPE_1LINE, tinfo, pname, None)
 
 
-def dump_prototypes(storage: functioninliner.ClonesStorage) -> dict[int, str]:
+def dump_prototypes(
+    binary: SyncedBinary, storage: functioninliner.ClonesStorage) -> dict[int, str]:
+
     d = {}
     for ea in idautils.Functions():
+        if not binary.contains(ea):
+            continue
+
         seg = ida_segment.getseg(ea)
         seg_name = ida_segment.get_segm_name(seg)
 
@@ -562,22 +590,23 @@ def dump_prototypes(storage: functioninliner.ClonesStorage) -> dict[int, str]:
 
         ptype = prototype(ea)
         if ptype:
-            d[ea] = ptype
+            dea = binary.ea2dump(ea)
+            d[dea] = ptype
 
     return d
 
 
-def dump(types: netnode.Netnode) -> str:
+def dump(binary: SyncedBinary, types: netnode.Netnode) -> str:
     storage = functioninliner.ClonesStorage()
     storage.update_from_storage()
 
     d = {
         "version": 4,
-        "names": dump_names(storage),
-        "inlined_funcs": dump_inlined_funcs(storage),
+        "names": dump_names(binary, storage),
+        "inlined_funcs": dump_inlined_funcs(binary, storage),
         # we have to dump prototypes before we dump local types because this may add new types to
         # the TIL
-        "prototypes": dump_prototypes(storage),
+        "prototypes": dump_prototypes(binary, storage),
         "local_types": dump_local_types(types),
     }
 
@@ -589,11 +618,15 @@ def dump(types: netnode.Netnode) -> str:
 # IMPORT LOGIC
 
 
-def update_names(storage: functioninliner.ClonesStorage, names: dict[int, str]) -> None:
+def update_names(
+    binary: SyncedBinary, storage: functioninliner.ClonesStorage, names: dict[int, str]) -> None:
+
     # delete names if required
-    for ea in dump_names(storage):
+    for dea in dump_names(binary, storage):
         # delete name if unnamed in the new dict
-        if ea not in names:
+        if dea not in names:
+            ea = binary.dump2ea(dea)
+
             msg = f"removing name from {ea:#x}"
             logger.debug(msg)
 
@@ -605,7 +638,8 @@ def update_names(storage: functioninliner.ClonesStorage, names: dict[int, str]) 
                     logger.warning("removal failed!")
 
     # update names
-    for ea, name in names.items():
+    for dea, name in names.items():
+        ea = binary.dump2ea(dea)
         cur_name = ida_name.get_name(ea)
 
         if cur_name != name:
@@ -622,7 +656,8 @@ def update_names(storage: functioninliner.ClonesStorage, names: dict[int, str]) 
                     # the new name
                     #
                     # perhaps we can even assert that this never happens
-                    if cur_ea not in names:
+                    cur_dea = binary.ea2dump(cur_ea)
+                    if cur_dea not in names:
                         logger.warning(
                             f"cannot rename {ea:#x} to {name!r} as this name already "
                             f"exists in the IDB for {cur_ea:#x}, and that EA doesn't "
@@ -674,9 +709,11 @@ def update_names(storage: functioninliner.ClonesStorage, names: dict[int, str]) 
                             logger.warning("\ttemporary rename undoing failed!")
 
 
-def update_inlined_funcs(storage: functioninliner.ClonesStorage, funcs: list[int]) -> None:
-    cur = set(storage.keys())
-    new = set(funcs)
+def update_inlined_funcs(
+    binary: SyncedBinary, storage: functioninliner.ClonesStorage, funcs: list[int]) -> None:
+
+    cur = {ea for ea in storage if binary.contains(ea)}
+    new = set(map(binary.dump2ea, funcs))
 
     undo = cur - new
     do = new - cur
@@ -956,7 +993,9 @@ def update_local_types(nhdr: str, types: netnode.Netnode) -> None:
             del types[tid]
 
 
-def update_prototypes(storage: functioninliner.ClonesStorage, d: dict[int, str]) -> None:
+def update_prototypes(
+    binary: SyncedBinary, storage: functioninliner.ClonesStorage, d: dict[int, str]) -> None:
+
     # delete prototypes if required
     #
     # dump_prototypes() is a bit heavy, so we duplicate some code here instead of calling it
@@ -974,12 +1013,14 @@ def update_prototypes(storage: functioninliner.ClonesStorage, d: dict[int, str])
             continue
 
         # delete type if untyped in the new dict
-        if ea not in d:
+        dea = binary.ea2dump(ea)
+        if dea not in d:
             logger.debug(f"removing prototype from {ea:#x}")
             ida_nalt.del_tinfo(ea)
 
     # update prototypes
-    for ea, ptype in d.items():
+    for dea, ptype in d.items():
+        ea = binary.dump2ea(dea)
         cur_ptype = prototype(ea)
 
         # TODO @TH: because we had numerous issues with prototypes syncing, we want to make sure
@@ -1042,16 +1083,16 @@ def parse_data(data: str, types: netnode.Netnode) -> dict:
     return migrate(d, types)
 
 
-def update(data: str, types: netnode.Netnode) -> None:
+def update(binary: SyncedBinary, data: str, types: netnode.Netnode) -> None:
     storage = functioninliner.ClonesStorage()
     storage.update_from_storage()
 
     d = parse_data(data, types)
 
-    update_names(storage, d["names"])
-    update_inlined_funcs(storage, d["inlined_funcs"])
+    update_names(binary, storage, d["names"])
+    update_inlined_funcs(binary, storage, d["inlined_funcs"])
     update_local_types(d["local_types"], types)
-    update_prototypes(storage, d["prototypes"])
+    update_prototypes(binary, storage, d["prototypes"])
 
 
 def adopt_uuids(data: str, types: netnode.Netnode) -> None:
@@ -1190,7 +1231,7 @@ class LabSyncRepo:
     def _commit(self, _id: str) -> None:
         index = self._repo.index
         index.add([_id + ".yaml"])
-        # this is broken for some reason: index.commit(f"updated {id}")
+        # this is broken for some reason: index.commit(f"updated {_id}")
         self._repo.git.commit("-m", f"updated {_id}")
 
     def _commit_dangling(self, _id: str) -> None:
@@ -1605,6 +1646,21 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
     def sync_in_progress(self) -> bool:
         return self._sync_in_progress
 
+    @classmethod
+    @property
+    @functools.cache
+    def _default_binary(cls) -> SyncedBinary:
+        return SyncedBinary(
+            idb_id=cls.idb_id,
+            start_ea=0,
+            end_ea=ida_idaapi.BADADDR,
+            base_ea=0,
+        )
+
+    @property
+    def binaries(self) -> Generator[SyncedBinary]:
+        yield self._default_binary
+
     def sync(self) -> None:
         assert not self.sync_in_progress
 
@@ -1630,8 +1686,17 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
                         adopt_uuids(latest_data, self.types)
 
                 # sync IDB -> repo
-                data = dump(self.types)
-                commit, changed = self.repo.put(self.idb_id, data, base=base)
+                commit = base
+                changed = False
+                data = {}
+                for i, binary in enumerate(self.binaries):
+                    if i > 1:
+                        logger.debug(f"saving part to {binary.idb_id}")
+
+                    bin_data = dump(binary, self.types)
+                    commit, bin_changed = self.repo.put(binary.idb_id, bin_data, base=commit)
+                    changed |= bin_changed
+                    data[binary.idb_id] = bin_data
 
                 if changed:
                     # save the IDB with the updated types and commit, in case something will break
@@ -1649,14 +1714,25 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
                 self.repo.sync()
 
                 # sync repo -> IDB
-                new_data, new_commit = self.repo.get(self.idb_id)
+                new_data = {}
+                for binary in self.binaries:
+                    bin_new_data, new_commit = self.repo.get(binary.idb_id)
+                    new_data[binary.idb_id] = bin_new_data
 
                     # if there's a new commit with new data for our IDB -- update
                 if new_data != data:
                     logger.debug("syncing changes from repo")
                     with wait_box("syncing changes from repo...", hide_cancel=True):
-                        update(new_data, self.types)
-                        changed = True
+                        for i, binary in enumerate(self.binaries):
+                            bin_data = data[binary.idb_id]
+                            bin_new_data = new_data[binary.idb_id]
+
+                            if bin_new_data != bin_data:
+                                if i > 1:
+                                    logger.debug(f"syncing part from {binary.idb_id}")
+
+                                update(binary, bin_new_data, self.types)
+                                changed = True
 
                     # save the commit we're synced to in netnode (even if just the commit changed)
                 if new_commit != commit:
