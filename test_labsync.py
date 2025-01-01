@@ -5,7 +5,8 @@ class MockTypes:
     def __getitem__(self, key: str) -> str:
         return "00000000-0000-0000-0000-000000000000"
 
-    def get(self, key: str) -> str:
+    @staticmethod
+    def get(key: str) -> str:  # noqa: ARG004
         return "00000000-0000-0000-0000-000000000000"
 
 

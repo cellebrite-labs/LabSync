@@ -234,6 +234,7 @@ def dump_local_types(types: netnode.Netnode) -> str:
     # bug there, before we commit it to the repo
     return normalize_local_types(hdr, types)
 
+
 def strip_comments(decl: str) -> str:
     stripped_lines = []
 
@@ -823,7 +824,7 @@ def update_local_types(nhdr: str, types: netnode.Netnode) -> None:
         uuids[decl_uuid] = name
 
         # accumulate
-        if decl_type in ("struct", "union", "enum", "class"):
+        if decl_type in {"struct", "union", "enum", "class"}:
             decls.append(decl)
 
             fdecl = f"{decl_type} {name};"
@@ -909,7 +910,6 @@ def update_local_types(nhdr: str, types: netnode.Netnode) -> None:
 
         msg = f"failed to parse local types ({n_errors} errors)"
         raise LabSyncError(msg)
-
 
     # in case loading the local types resulted in a new type being created, we might've encountered
     # a bug where IDA recreates an anonymous local type for an unnamed embedded subtype
@@ -1004,7 +1004,7 @@ def update_prototypes(storage: functioninliner.ClonesStorage, d: dict[int, str])
 
 def migrate(d: dict, types: netnode.Netnode) -> dict:
     ver = d["version"]
-    if ver not in (1, 2, 3, 4):
+    if ver not in {1, 2, 3, 4}:
         msg = f"data file is of unexpected version: {ver}"
         raise LabSyncError(msg)
 
@@ -1508,7 +1508,8 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
         for a in self.menu_actions:
             a.unregister()
 
-    def is_compatible(self) -> bool:
+    @staticmethod
+    def is_compatible() -> bool:
         info = ida_idaapi.get_inf_structure()
         return info.procname == "ARM" and info.is_64bit()
 
