@@ -1483,13 +1483,35 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
     @property
     @functools.cache
     def netnode(cls) -> netnode.Netnode:
+        """this netnode holds:
+            commit: Optional[str]  # the git commit we're synced to
+            enabled: bool  # whether LabSync is enabled
+            custom_idb_id: Optional[str]  # override of the IDB id to use
+        """
         return netnode.Netnode(LabSyncPlugin.NETNODE)
 
     @classmethod
     @property
     @functools.cache
     def types(cls) -> netnode.Netnode:
+        """this netnode matches:
+                tid [int]  # of a local type
+            to
+                uuid [str]  # of it in the YAML
+        """
         return netnode.Netnode(LabSyncPlugin.TYPES_NETNODE)
+
+    @classmethod
+    @property
+    @functools.cache
+    def _binaries_netnode(cls) -> netnode.Netnode:
+        """this netnode matches:
+                seg_prefix [str]  # prefix of segment names
+            to
+                tuple[str, int]  # of (<idb id>, <base ea>) to use for mapping segments to separate
+                                 # YAMLs
+        """
+        return netnode.Netnode(LabSyncPlugin.BINARIES_NETNODE)
 
     @classmethod
     @property
@@ -1650,12 +1672,6 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
     @property
     def sync_in_progress(self) -> bool:
         return self._sync_in_progress
-
-    @classmethod
-    @property
-    @functools.cache
-    def _binaries_netnode(cls) -> netnode.Netnode:
-        return netnode.Netnode(LabSyncPlugin.BINARIES_NETNODE)
 
     @classmethod
     @property
