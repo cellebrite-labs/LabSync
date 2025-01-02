@@ -1664,17 +1664,19 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
         return cls._binaries_from_mapping_rules(rules)
 
     @classmethod
-    def _binaries_from_mapping_rules(cls, rules: dict[str, str]) -> tuple[SyncedBinary, ...]:
+    def _binaries_from_mapping_rules(
+        cls, rules: dict[str, tuple[str, Optional[int]]]) -> tuple[SyncedBinary, ...]:
+
         if not rules:
             return (SyncedBinary(idb_id=cls.idb_id),)
 
         # generate a synced binary per every segment matching rule and the default
         seg2bin = {}
-        for seg_prefix, idb_id in rules.items():
+        for seg_prefix, (idb_id, base_ea) in rules.items():
             # start with start_ea/end_ea pointing at max/min, and we'll have update them in the
             # next loop
             seg2bin[seg_prefix] = SyncedBinary(
-                idb_id=idb_id, start_ea=ida_idaapi.BADADDR, end_ea=0,
+                idb_id=idb_id, start_ea=ida_idaapi.BADADDR, end_ea=0, base_ea=base_ea,
             )
         default_bin = SyncedBinary(idb_id=cls.idb_id, start_ea=ida_idaapi.BADADDR, end_ea=0)
 
@@ -1690,7 +1692,7 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
             matched = False
             for seg_prefix, binary in seg2bin.items():
                 if name.startswith(seg_prefix):
-                    binary.base_ea = binary.start_ea = min(binary.start_ea, seg.start_ea)
+                    binary.start_ea = min(binary.start_ea, seg.start_ea)
                     binary.end_ea = max(binary.end_ea, seg.end_ea)
                     matched = True
 
@@ -1723,6 +1725,14 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
             last_bin = _bin
             last_seg = seg
 
+        # validate/set base_ea-s
+        for seg, _bin in seg2bin.items():
+            if _bin.base_ea is None:
+                _bin.base_ea = _bin.start_ea
+            elif _bin.base_ea > _bin.start_ea:
+                msg = f"Base EA for {seg!r} is greater than its start EA"
+                raise LabSyncBinaryMatchingError(msg)
+
         binaries = (default_bin, *seg2bin.values())
 
         # make sure the we don't have overlapping IDB ids
@@ -1731,11 +1741,14 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
         return binaries
 
     @classmethod
-    def map_segments_to_idb_id(cls, seg_prefix: str, idb_id: str) -> None:
+    def map_segments_to_idb_id(
+        cls, seg_prefix: str, idb_id: str, *, base_ea: Optional[int] = None) -> None:
+
         rules = dict(cls._binaries_netnode.items())
 
         new_rules = rules.copy()
-        new_rules[seg_prefix] = idb_id
+        seg_rule = (idb_id, base_ea)
+        new_rules[seg_prefix] = seg_rule
 
         # check that the new rules are valid
         try:
@@ -1745,7 +1758,7 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
             return
 
         # add the rule to netnode
-        cls._binaries_netnode[seg_prefix] = idb_id
+        cls._binaries_netnode[seg_prefix] = seg_rule
 
     def sync(self) -> None:
         assert not self.sync_in_progress

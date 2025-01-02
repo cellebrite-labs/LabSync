@@ -166,7 +166,7 @@ using `Edit > Plugins > LabSync > Disable` and then use `Edit > Plugins > LabSyn
 If LabSync will be enabled afterwards, it'll treat the IDB as "new" when syncing it with the repo,
 and in case it won't be deleted from git, it'll be merged with the existing repo data.
 
-## Mapping segments to a different data file
+### Mapping segments to a different data file
 
 In some cases it's useful to reverse a binary together with a software library that it uses in the
 same IDB. In order to support syncing features related to the library between the IDBs of different
@@ -188,6 +188,10 @@ Where `seg_prefix` is e.g. `libwhatever.` and `idb_id` can technically be any st
 expected to be the MD5 hash of the `libwhatever` binary. This will cause LabSync to sync features
 (e.g. names, prototypes) related to EAs whose segment name starts with `<seg_prefix>` to
 `<idb_id>.yaml` instead of the main YAML file.
+
+Because the library may be loaded to different EAs in different IDBs, the EAs in the library
+YAML will be relative to the start EA of the first matching segment. If needed, you can override
+the base EA by providing a `base_ea` argument to `map_segments_to_idb_id`.
 
 ## Known issues
 
