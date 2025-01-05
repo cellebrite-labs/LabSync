@@ -850,17 +850,23 @@ def parse_local_types(nhdr: str) -> Generator[tuple[str, str, str, str]]:
 
 def update_local_types(nhdr: str, types: netnode.Netnode) -> None:
     # parse type declaration names
-    names = set()
+    name2decl = {}
     uuids = {}
     decls = []
     fdecls = []
     typedefs = []
     for name, decl_uuid, decl, decl_type in parse_local_types(nhdr):
         # make sure it's unique, mostly for sanity purposes
-        if name in names:
+        if name in name2decl:
+            if (name2decl[name] == decl and
+                uuids.get(decl_uuid) == name):
+                # duplicate local type with same decl and UUID. probably accidentally copied from
+                # both sides during conflict resolution. we'll skip the redundant copy
+                continue
+
             msg = f"found two local type declarations with the same name: {name}"
             raise LabSyncError(msg)
-        names.add(name)
+        name2decl[name] = decl
 
         # remember the name for each uuid
         uuids[decl_uuid] = name
@@ -908,7 +914,7 @@ def update_local_types(nhdr: str, types: netnode.Netnode) -> None:
     #           that and remove the loop here afterwards
     last_n_errors = float("inf")
     iters = 1
-    while iters < len(names) + 1:
+    while iters < len(name2decl) + 1:
         # parse some more local types
         n_errors = ida_typeinf.parse_decls(None, hdr, None, ida_typeinf.HTI_DCL)
         logger.debug(f"loaded local types with {n_errors} errors")
@@ -935,7 +941,7 @@ def update_local_types(nhdr: str, types: netnode.Netnode) -> None:
 
     logger.debug(
         f"finished loading local types with {n_errors} errors after {iters} iterations "
-        f"({len(names)} types)"  # noqa: COM812
+        f"({len(name2decl)} types)"  # noqa: COM812
     )
 
     if n_errors:
@@ -958,7 +964,7 @@ def update_local_types(nhdr: str, types: netnode.Netnode) -> None:
     #
     # in that case, look for and delete dangling anonymous local types that should've been left
     new_names = set(local_types())
-    if names != new_names:
+    if set(name2decl.keys()) != new_names:
         for name in new_names:
             tinfo = ida_typeinf.tinfo_t()
             assert tinfo.get_named_type(None, name)
