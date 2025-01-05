@@ -178,6 +178,7 @@ class SyncedBinary:
     start_ea: int = 0  # must be the first field, because we rely on it when sorting
     end_ea: int = ida_idaapi.BADADDR  # exclusive
     base_ea: int = 0
+    seg_prefix: Optional[str] = None
 
     def contains(self, ea: int) -> bool:
         return self.start_ea <= ea < self.end_ea
@@ -1448,6 +1449,7 @@ class LabSyncHooks(ida_kernwin.UI_Hooks):
         #           "old" path so reinvoke the 2nd save differently
         changed = self.plugin.sync()
         if changed:
+            logger.debug("resaving the idb with synced changes")
             idb_name = ida_loader.get_path(ida_loader.PATH_TYPE_IDB)
             # TODO @TH: can we somehow find the flags the original save was invoked with and reuse
             #           them?
@@ -1619,10 +1621,15 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
     def init(self) -> int:
         LabSyncPlugin._init_logging()
 
-        logger.info(f"idb id: {self.idb_id}")
-
         if not self.cfg or not self.repo:
             return ida_idaapi.PLUGIN_SKIP
+
+        for binary in self.binaries:
+            if binary.seg_prefix is None:
+                name = "main"
+            else:
+                name = f"{binary.seg_prefix}*"
+            logger.info(f"{name} idb id: {binary.idb_id}")
 
         if self.enabled:
             logger.info("syncing enabled")
@@ -1719,8 +1726,11 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
             # next loop
             seg2bin[seg_prefix] = SyncedBinary(
                 idb_id=idb_id, start_ea=ida_idaapi.BADADDR, end_ea=0, base_ea=base_ea,
+                seg_prefix=seg_prefix,
             )
-        default_bin = SyncedBinary(idb_id=cls.idb_id, start_ea=ida_idaapi.BADADDR, end_ea=0)
+        default_bin = SyncedBinary(
+            idb_id=cls.idb_id, start_ea=ida_idaapi.BADADDR, end_ea=0, seg_prefix=None,
+        )
 
         # find the start/end EAs for each synced binary
         for i in range(ida_segment.get_segm_qty()):
