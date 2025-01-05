@@ -1471,6 +1471,8 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
     TYPES_NETNODE: str = "$ labsync.types"
     BINARIES_NETNODE: str = "$ labsync.binaries"
 
+    COMMIT_KEY_PREFIX = "commit."
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -1484,22 +1486,22 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
     @functools.cache
     def netnode(cls) -> netnode.Netnode:
         """this netnode holds:
-            commit: Optional[str]  # the git commit we're synced to
+            commit.<idb_id>: Optional[str]  # the git commit this binary is synced to
             enabled: bool  # whether LabSync is enabled
             custom_idb_id: Optional[str]  # override of the IDB id to use
         """
         return netnode.Netnode(LabSyncPlugin.NETNODE)
 
     @classmethod
-    @property
     @functools.cache
-    def types(cls) -> netnode.Netnode:
+    def types(cls, idb_id: str) -> netnode.Netnode:
         """this netnode matches:
                 tid [int]  # of a local type
             to
                 uuid [str]  # of it in the YAML
         """
-        return netnode.Netnode(LabSyncPlugin.TYPES_NETNODE)
+        name = f"{LabSyncPlugin.TYPES_NETNODE}.{idb_id}"
+        return netnode.Netnode(name)
 
     @classmethod
     @property
@@ -1561,6 +1563,10 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
         default_id = ida_nalt.retrieve_input_file_md5().hex()
         return cls.netnode.get("custom_idb_id", default_id)
 
+    @classmethod
+    def commit_key(cls, idb_id: str) -> str:
+        return f"{cls.COMMIT_KEY_PREFIX}{idb_id}"
+
     def _register(self) -> None:
         for t in LabSyncPlugin.menu_actions_types:
             a = t(self)
@@ -1596,6 +1602,20 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
         # may be overridden with the 'log' config entry
         logger.setLevel(logging.INFO)
 
+    def migrate(self) -> None:
+        # migrate types to be per binary
+        old_types = netnode.Netnode(LabSyncPlugin.TYPES_NETNODE)
+        new_types = self.types(self.idb_id)
+        for tid, _uuid in list(old_types.items()):
+            new_types[tid] = _uuid
+            del old_types[tid]
+
+        # migrate commit to be per binary
+        old_commit = self.netnode.get("commit")
+        if old_commit is not None:
+            self.netnode[self.commit_key(self.idb_id)] = old_commit
+            del self.netnode["commit"]
+
     def init(self) -> int:
         LabSyncPlugin._init_logging()
 
@@ -1609,8 +1629,14 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
         else:
             logger.info("syncing disabled")
 
-        if self.enabled or "commit" in self.netnode:
-            logger.info(f"last synced to commit: {self.netnode.get('commit')}")
+        self.migrate()
+
+        for binary in self.binaries:
+            commit = self.netnode.get(self.commit_key(binary.idb_id))
+            if self.enabled or commit:
+                logger.info(
+                    f"{binary.idb_id} last synced to commit: {commit}",
+                )
 
         log_level = self.cfg.get("log")
         if log_level:
@@ -1776,6 +1802,11 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
         # add the rule to netnode
         cls._binaries_netnode[seg_prefix] = seg_rule
 
+        # invalidate previous types if we had them (since they might be outdated)
+        types = cls.types(idb_id)
+        for tid in list(types.keys()):
+            del types[tid]
+
     def sync(self) -> None:
         assert not self.sync_in_progress
 
@@ -1789,75 +1820,59 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
 
             timeout = float(self.cfg.get("lock_timeout_sec", DEFAULT_LOCK_TIMEOUT))
             with self._lock(timeout):
-                logger.debug("saving changes to repo")
+                binaries = self.binaries
+                for binary in self.binaries:
+                    if len(binaries) > 1:
+                        logger.debug(f"syncing {binary.idb_id}")
 
-                # in case this is the initial commit, try to adopt local types from the repo (in
-                # case this IDB was already synced)
-                base = self.netnode.get("commit")
-                if not base:
-                    latest_data, latest_commit = self.repo.get(self.idb_id)
-                    if latest_data:
-                        logger.debug(f"adopting local type uuids from commit: {latest_commit}")
-                        adopt_uuids(latest_data, self.types)
+                    # in case this is the initial commit, try to adopt local types from the repo
+                    # (in case this IDB was already synced)
+                    base = self.netnode.get(self.commit_key(binary.idb_id))
+                    if not base:
+                        latest_data, latest_commit = self.repo.get(binary.idb_id)
+                        if latest_data:
+                            logger.debug(f"adopting local type uuids from commit: {latest_commit}")
+                            adopt_uuids(latest_data, self.types(binary.idb_id))
 
-                binaries = self.binaries  # precompute here for all of the times we'll need it
+                    # sync IDB -> repo
+                    logger.debug("saving changes to repo")
 
-                # sync IDB -> repo
-                commit = base
-                changed = False
-                data = {}
-                for i, binary in enumerate(binaries):
-                    if i > 1:
-                        logger.debug(f"saving part to {binary.idb_id}")
+                    data = dump(binary, self.types(binary.idb_id))
+                    commit, changed = self.repo.put(binary.idb_id, data, base=base)
 
-                    bin_data = dump(binary, self.types)
-                    commit, bin_changed = self.repo.put(binary.idb_id, bin_data, base=commit)
-                    changed |= bin_changed
-                    data[binary.idb_id] = bin_data
+                    if changed:
+                        # save the IDB with the updated types and commit, in case something will
+                        # break later during the merge
+                        #
+                        # TODO @TH: this path will be wrong if we're under "Save as..." flow.
+                        #           see comments under LabSyncHooks.saved
+                        self.netnode[self.commit_key(binary.idb_id)] = commit
 
-                if changed:
-                    # save the IDB with the updated types and commit, in case something will break
-                    # later onduring the merge
-                    #
-                    # TODO @TH: this path will be wrong if we're under "Save as..." flow.
-                    #           see comments under LabSyncHooks.saved
+                        idb_name = ida_loader.get_path(ida_loader.PATH_TYPE_IDB)
+                        ida_loader.save_database(idb_name, 0)
 
-                    self.netnode["commit"] = commit
+                    # sync repo with upstream
+                    self.repo.sync()
 
-                    idb_name = ida_loader.get_path(ida_loader.PATH_TYPE_IDB)
-                    ida_loader.save_database(idb_name, 0)
+                    # sync repo -> IDB
+                    new_data, new_commit = self.repo.get(binary.idb_id)
 
-                # sync repo with upstream
-                self.repo.sync()
+                        # if there's a new commit with new data for our IDB -- update
+                    if new_data != data:
+                        logger.debug("updating with changes from repo")
+                        with wait_box("updating with changes from repo...", hide_cancel=True):
+                            update(binary, new_data, self.types(binary.idb_id))
+                            changed = True
 
-                # sync repo -> IDB
-                new_data = {}
-                for binary in binaries:
-                    bin_new_data, new_commit = self.repo.get(binary.idb_id)
-                    new_data[binary.idb_id] = bin_new_data
+                        # save the commit we're synced to in netnode (even if just the commit
+                        # changed)
+                    if new_commit != commit:
+                        self.netnode[self.commit_key(binary.idb_id)] = new_commit
+                        changed = True
 
-                    # if there's a new commit with new data for our IDB -- update
-                if new_data != data:
-                    logger.debug("syncing changes from repo")
-                    with wait_box("syncing changes from repo...", hide_cancel=True):
-                        for i, binary in enumerate(binaries):
-                            bin_data = data[binary.idb_id]
-                            bin_new_data = new_data[binary.idb_id]
-
-                            if bin_new_data != bin_data:
-                                if i > 1:
-                                    logger.debug(f"syncing part from {binary.idb_id}")
-
-                                update(binary, bin_new_data, self.types)
-                                changed = True
-
-                    # save the commit we're synced to in netnode (even if just the commit changed)
-                if new_commit != commit:
-                    self.netnode["commit"] = new_commit
-                    changed = True
-
-                s = "" if changed else " (no changes)"
-                logger.debug(f"synced to {new_commit}{s}")
+                    p = "" if len(binaries) == 1 else f"{binary.idb_id} "
+                    s = "" if changed else " (no changes)"
+                    logger.info(f"{p}synced to commit: {new_commit}{s}")
 
                 return changed
         except BaseException as exc:  # noqa: BLE001
@@ -1868,31 +1883,50 @@ class LabSyncPlugin(ida_idaapi.plugin_t):
         finally:
             self._sync_in_progress = False
 
-    def enable(self) -> None:
-        self.netnode["enabled"] = True
+    @classmethod
+    def enable(cls) -> None:
+        cls.netnode["enabled"] = True
         logger.info("syncing enabled")
-        logger.info(f"last synced to commit: {self.netnode.get('commit')}")
 
-    def disable(self) -> None:
-        self.netnode["enabled"] = False
+        for binary in cls.binaries:
+            commit = cls.netnode.get(cls.commit_key(binary.idb_id))
+            logger.info(
+                f"{binary.idb_id} last synced to commit: {commit}",
+            )
+
+    @classmethod
+    def disable(cls) -> None:
+        cls.netnode["enabled"] = False
         logger.info("syncing disabled")
 
-    def reset(self) -> None:
+    @classmethod
+    def reset(cls) -> None:
         # make sure that we're already disabled, to make sure that no one resets by mistake
-        assert not self.enabled
+        assert not cls.enabled
 
-        # clear the repo synchronization state
-        if "commit" in self.netnode:
-            del self.netnode["commit"]
+        idb_ids = {}
 
-        for tid in list(self.types.keys()):
-            del self.types[tid]
+        # delete the commit states
+        for k in cls.netnode.keys():  # noqa: SIM118
+            if k.startswith(cls.COMMIT_KEY_PREFIX):
+                idb_ids.add(k[len(cls.COMMIT_KEY_PREFIX):])
+                del cls.netnode[k]
+
+        for binary in cls.binaries:
+            idb_ids.add(binary.idb_id)
+
+        # delete the tid->uuid mapping for all of the IDB ids we noted
+        for idb_id in idb_ids:
+            types = cls.types(idb_id)
+            for tid in list(types.keys()):
+                del types[tid]
 
         logger.info("sync data reset")
 
+    @classmethod
     @property
-    def enabled(self) -> bool:
-        return self.netnode.get("enabled", False)
+    def enabled(cls) -> bool:
+        return cls.netnode.get("enabled", False)
 
 
 def PLUGIN_ENTRY() -> ida_idaapi.plugin_t:  # noqa: N802
