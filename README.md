@@ -271,10 +271,8 @@ the base EA by providing a `base_ea` argument to `map_segments_to_idb_id`.
    "data" EAs
 3. Merging names of functions and their prototypes into one in the YAML (currently a logical
    conflict in a function name change will result in two git conflicts)
-4. Synchronizing different segments to different files (useful for situations where libraries are
-   sideloaded to different binaries)
-5. "git blame" tooltip -- see who last named/typed a function to ask them about it
-6. YAML metadata -- add a title/description of the IDB to the YAML
+4. "git blame" tooltip -- see who last named/typed a function to ask them about it
+5. YAML metadata -- add a title/description of the IDB to the YAML
 
 ## Meta
 
