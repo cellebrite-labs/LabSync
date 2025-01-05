@@ -86,6 +86,10 @@ except ModuleNotFoundError:
 # the name and one on the prototype)
 NORMALIZE_PROTOTYPES = False
 
+# we decided not to remove names and prototypes that are missing in the YAML since some times
+# exporting/importing them remotely can be an issue and so they will be removed locally as well
+REMOVE_MISSING_NAMES_AND_PROTOTYPES = False
+
 LOCAL_TYPES_COMMENT_FMT = "/* >> LABSYNC DO NOT TOUCH: {} << */"
 
 LOCKFILE = "labsync.lock"
@@ -626,20 +630,21 @@ def update_names(
     binary: SyncedBinary, storage: functioninliner.ClonesStorage, names: dict[int, str]) -> None:
 
     # delete names if required
-    for dea in dump_names(binary, storage):
-        # delete name if unnamed in the new dict
-        if dea not in names:
-            ea = binary.dump2ea(dea)
+    if REMOVE_MISSING_NAMES_AND_PROTOTYPES:
+        for dea in dump_names(binary, storage):
+            # delete name if unnamed in the new dict
+            if dea not in names:
+                ea = binary.dump2ea(dea)
 
-            msg = f"removing name from {ea:#x}"
-            logger.debug(msg)
+                msg = f"removing name from {ea:#x}"
+                logger.debug(msg)
 
-            success = ida_name.set_name(ea, "", ida_name.SN_NOWARN)
-            if not success:
-                if logger.getEffectiveLevel() > logging.DEBUG:
-                    logger.warning("failed " + msg)
-                else:
-                    logger.warning("removal failed!")
+                success = ida_name.set_name(ea, "", ida_name.SN_NOWARN)
+                if not success:
+                    if logger.getEffectiveLevel() > logging.DEBUG:
+                        logger.warning("failed " + msg)
+                    else:
+                        logger.warning("removal failed!")
 
     # update names
     for dea, name in names.items():
@@ -1007,26 +1012,26 @@ def update_prototypes(
     binary: SyncedBinary, storage: functioninliner.ClonesStorage, d: dict[int, str]) -> None:
 
     # delete prototypes if required
-    #
-    # dump_prototypes() is a bit heavy, so we duplicate some code here instead of calling it
-    # because we don't need the actual prototypes
-    for ea in idautils.Functions():
-        seg = ida_segment.getseg(ea)
-        seg_name = ida_segment.get_segm_name(seg)
+    if REMOVE_MISSING_NAMES_AND_PROTOTYPES:
+        # dump_prototypes() is a bit heavy, so we duplicate some code here instead of calling it
+        # because we don't need the actual prototypes
+        for ea in idautils.Functions():
+            seg = ida_segment.getseg(ea)
+            seg_name = ida_segment.get_segm_name(seg)
 
-        # skip funcs that are in inlined chunks somehow (shouldn't happen)
-        if seg_name.startswith("inlined_"):
-            continue
+            # skip funcs that are in inlined chunks somehow (shouldn't happen)
+            if seg_name.startswith("inlined_"):
+                continue
 
-        # skip funcs that have been inlined
-        if ea in storage:
-            continue
+            # skip funcs that have been inlined
+            if ea in storage:
+                continue
 
-        # delete type if untyped in the new dict
-        dea = binary.ea2dump(ea)
-        if dea not in d:
-            logger.debug(f"removing prototype from {ea:#x}")
-            ida_nalt.del_tinfo(ea)
+            # delete type if untyped in the new dict
+            dea = binary.ea2dump(ea)
+            if dea not in d:
+                logger.debug(f"removing prototype from {ea:#x}")
+                ida_nalt.del_tinfo(ea)
 
     # update prototypes
     for dea, ptype in d.items():
