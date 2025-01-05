@@ -4,6 +4,7 @@ import configparser
 import contextlib
 import dataclasses
 import functools
+import heapq
 import io
 import logging
 import os
@@ -55,6 +56,7 @@ except ModuleNotFoundError:
     class ida_idaapi:  # noqa: N801
         PLUGIN_MOD = 0
         PLUGIN_HIDE = 0
+        BADADDR = 0
 
         class plugin_t:  # noqa: N801
             pass
@@ -218,11 +220,33 @@ def dump_inlined_funcs(binary: SyncedBinary, storage: functioninliner.ClonesStor
     return list(sorted(funcs))  # noqa: C413
 
 
-def dump_local_types(types: netnode.Netnode) -> str:
-    sio = io.StringIO()
+def stable_topological_sort(graph: dict[Any, set[Any]]) -> Generator[Any]:
+    heap = []
+    next_v = None
 
+    while heap or graph:
+        for v, edges in list(graph.items()):
+            if next_v is not None:
+                edges.discard(next_v)
+            if not edges:
+                heapq.heappush(heap, v)
+                del graph[v]
+
+        if not heap:
+            msg = "graph contains unsolvable dependencies"
+            raise ValueError(msg)
+
+        next_v = heapq.heappop(heap)
+        yield next_v
+
+
+def dump_local_types(types: netnode.Netnode) -> str:
     # we emulate print_decls() ourselves because it internally uses PRTYPE_NOREGEX and this
     # removes namespaces which starts with double underscore (e.g. std::__1::__libcpp_refstring)
+
+    local_types_by_ordinal = {}  # ordinal: (name, decl, dependencies)
+    local_types_by_name = {}  # name: (ordinal, decl, dependencies)
+
     tinfo = ida_typeinf.tinfo_t()
     for ordinal in range(1, ida_typeinf.get_ordinal_qty(None)):
         if not tinfo.get_numbered_type(None, ordinal):
@@ -241,26 +265,78 @@ def dump_local_types(types: netnode.Netnode) -> str:
         )
 
         decl = ida_typeinf.print_tinfo(None, 2, 0, flags, tinfo, name, None)
+        decl = decl.strip()
+        # also strip trailing spaces since they arn't block-encodable in YAML
+        decl = "\n".join(line.rstrip() for line in decl.splitlines())
+
+        # TODO @TH: there is an IDA bug where comment-only changes to local types are not updated
+        #           when using parse_decls() so for now we just strip all comments until it'll be
+        #           fixed
+        decl = strip_comments(decl)
 
         # IDA apparently can't handle templates in parse_decls(), so we we don't bother syncing
         # them at all. hopefully no sane reverser actually uses them and these are only imported
         # from debug symbols and never touched
-        if "<" in strip_comments(decl):
-            logger.debug(
+        if "<" in decl:
+            logger.warning(
                 f"skipping syncing of local type {name!r} because templates are unsupported"  # noqa: COM812
             )
             continue
 
-        sio.write(f"/* {ordinal} */\n")
-        sio.write(decl)
-        sio.write("\n")
+        # do a sanity for the extract of the name, since it'll be used when updating
+        parsed_name, _ = decl_to_name_and_type(decl)
+        assert name == parsed_name
 
-    hdr = sio.getvalue()
+        # see if this type is dependent on others
+        dependencies = set()
 
-    # now that we don't use print_decls() we don't really have to use decl_to_name_and_type() in
-    # normalize_local_types() in this flow, but we prefer to in order to fail early if there's any
-    # bug there, before we commit it to the repo
-    return normalize_local_types(hdr, types)
+        udt = ida_typeinf.udt_type_data_t()
+        if tinfo.get_udt_details(udt):
+            for i in range(udt.size()):
+                udm = udt[i]
+                udm_ordinal = udm.type.get_ordinal()
+                if udm_ordinal:
+                    dependencies.add(udm_ordinal)
+
+        # keep it
+        local_types_by_ordinal[ordinal] = (name, decl, dependencies)
+        assert name not in local_types_by_name
+        local_types_by_name[name] = (ordinal, decl, dependencies)
+
+    dep_graph = {}
+    for name, _, deps in local_types_by_ordinal.values():
+        dep_names = {local_types_by_ordinal[d][0] for d in deps if d in local_types_by_ordinal}
+        if len(dep_names) != len(deps):
+            logger.warning(
+                f"skipping syncing of local type {name!r} because it depends on other non-synced "
+                "local types"  # noqa: COM812
+            )
+            continue
+
+        dep_graph[name] = dep_names
+
+    # generate a normalized header file that is sorted by dependecy order and lexigraphically,
+    # to make YAML diffs sane
+    nhdr = io.StringIO()
+
+    for name in stable_topological_sort(dep_graph):
+        _, decl, _ = local_types_by_name[name]
+
+        # add uuid
+        tid = ida_typeinf.get_named_type_tid(name)
+        if tid == ida_idaapi.BADADDR:
+            msg = f"failed to resolve tid of local type {name!r}:\n{decl}"
+            raise LabSyncError(msg)
+        decl_uuid = types.get(tid)
+        if not decl_uuid:
+            types[tid] = decl_uuid = str(uuid.uuid4())
+
+        nhdr.write(LOCAL_TYPES_COMMENT_FMT.format(decl_uuid))
+        nhdr.write("\n")
+        nhdr.write(decl)
+        nhdr.write("\n\n")
+
+    return nhdr.getvalue().strip()
 
 
 def strip_comments(decl: str) -> str:
@@ -364,83 +440,6 @@ def decl_to_name_and_type(decl: str) -> tuple[str, str]:
     assert name
 
     return name, decl_type
-
-
-def normalize_local_types(
-    hdr: str, types: netnode.Netnode, split_pat: Optional[str] = None,
-) -> str:
-
-    # remove warnings for removed types
-    hdr = re.sub(r"^/\* WARNING: no name found for type \d+ \*/$", "", hdr, flags=re.MULTILINE)
-
-    # split according to comments IDA adds with the numerals of local types
-    if split_pat is None:
-        split_pat = r"^/\* \d+ \*/$"
-    parts = re.split(split_pat, hdr, flags=re.MULTILINE)
-
-    if parts[0].strip():
-        msg = f"found unexpected forward declarations:\n{parts[0].strip()}"
-        raise LabSyncError(msg)
-
-    # parse type declaration names
-    decls = {}
-    for decl in parts[1:]:
-        decl = decl.strip()
-        # also strip trailing spaces since they arn't block-encodable in YAML
-        decl = "\n".join(line.rstrip() for line in decl.splitlines())
-
-        # TODO @TH: there is an IDA bug where comment-only changes to local types are not updated
-        #           when using parse_decls() so for now we just strip all comments until it'll be
-        #           fixed
-        decl = strip_comments(decl)
-
-        # TODO @TH: we should be able to remove this now that we added the uuid comments
-        #
-        # make sure that the decleration doesn't contain empty lines since we depend on that in
-        # the update logic
-        #
-        # we though about replacing it with a marker before each local type declaration, but then
-        # we said that in complex conflicts people may not restore them to how we expect so that
-        # might come out worse
-        #
-        # and anyway we expect people not to modify other stuff either (e.g. the structure of the
-        # first line of the local type)
-        if "\n\n" in decl:
-            msg = f"found declaration with unexpected empty line:\n{decl}"
-            raise LabSyncError(msg)
-
-        # extract the name of the type
-        name, _ = decl_to_name_and_type(decl)
-
-        # make sure it's unique
-        if name in decls:
-            msg = (
-                f"found two local type declarations with the same name:\n{decls[name]}\n"
-                f"and:\n{decl}"
-            )
-            raise LabSyncError(msg)
-
-        # add uuid
-        tid = ida_typeinf.get_named_type_tid(name)
-        if tid == ida_idaapi.BADADDR:
-            msg = f"failed to resolve tid of local type {name!r}:\n{decl}"
-            raise LabSyncError(msg)
-        decl_uuid = types.get(tid)
-        if not decl_uuid:
-            types[tid] = decl_uuid = str(uuid.uuid4())
-
-        decls[name] = (decl_uuid, decl)
-
-    # generate the normalized local types
-    nhdr = io.StringIO()
-
-    for _, (decl_uuid, decl) in sorted(decls.items()):
-        nhdr.write(LOCAL_TYPES_COMMENT_FMT.format(decl_uuid))
-        nhdr.write("\n")
-        nhdr.write(decl)
-        nhdr.write("\n\n")
-
-    return nhdr.getvalue().strip()
 
 
 def fix_non_present_arguments(name: str, tinfo: ida_typeinf.tinfo_t, *, add: bool = True) \
@@ -1054,7 +1053,7 @@ def update_prototypes(
                     logger.warning("prototype change failed!")
 
 
-def migrate(d: dict, types: netnode.Netnode) -> dict:
+def migrate(d: dict, types: netnode.Netnode) -> dict:  # noqa: ARG001
     ver = d["version"]
     if ver not in {1, 2, 3, 4}:
         msg = f"data file is of unexpected version: {ver}"
@@ -1065,14 +1064,11 @@ def migrate(d: dict, types: netnode.Netnode) -> dict:
         return d
 
     # version 3 was missing local type uuids
-    fake_hdr = "\n\n" + d["local_types"]
-        # turn the format string to a regex pattern
-    cmt_pat = "^" + LOCAL_TYPES_COMMENT_FMT.format(r"[0-9a-f-]+").replace("*", r"\*") + "$"
-    fake_hdr = re.sub(cmt_pat, "", fake_hdr, flags=re.MULTILINE)
-
-    types_clone = dict(types.items())
-    nhdr = normalize_local_types(fake_hdr, types_clone, split_pat="\n\n")
-    d["local_types"] = nhdr
+        # we dropped the logic here since it was non-trivial to update per newer changes in code
+        # and this version is very old anyway
+    msg = ("migrating from YAML version 3 is not supported. use an older version of LabSync to do "
+           "so")
+    raise NotImplementedError(msg)
 
     if ver == 3:
         return d
