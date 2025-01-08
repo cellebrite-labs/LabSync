@@ -255,11 +255,10 @@ the base EA by providing a `base_ea` argument to `map_segments_to_idb_id`.
 - Q: I have a merge conflict on the UUID comment that LabSync added. What should I do?
 - A: First read the part about *Local type tracking* above to understand what these UUIDs mean.
      Essentially, what happened is that both you and upstream have added a type with the same
-     name. If these types are logically different, abort the merge (as explained in the previous
-     answer), rename your local structure and resync. If these types are logically same, you
-     should do the same (rename and resync) and then replace all of the usages one of them to the
-     other, delete the one that is now unused, and resync. On older IDA versions there was an
-     [automated way to do it](https://hex-rays.com/blog/igors-tip-of-the-week-142-mapping-local-types),
+     name. If these types are logically different, you can just rename one of them during conflict
+     resolution. If these types are logically same, you should do the same (rename one of them) and
+     then replace all of its usages to the other, delete it, and resync. On older IDA versions
+     there was an [automated way to do it](https://hex-rays.com/blog/igors-tip-of-the-week-142-mapping-local-types),
      but at least on IDA 8.4 it seems to be gone.
 
 ## Future work
